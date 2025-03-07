@@ -52,7 +52,6 @@ class TestAppium(unittest.TestCase):
 
         time.sleep(1)  # Даем время на анимацию
 
-        # 2. Найти иконку Tripadvisor и кликнуть
         try:
             tripadvisor_icon = self.driver.find_element(AppiumBy.XPATH, '//*[@text="Tripadvisor"]')
             tripadvisor_icon.click()
@@ -60,6 +59,30 @@ class TestAppium(unittest.TestCase):
             self.fail("Tripadvisor was not found!")
 
         time.sleep(2)
+
+    def get_all_elements(self):
+        # Находим все элементы на экране
+        elements = self.driver.find_elements(AppiumBy.XPATH, "//*")
+
+        elements_text = []
+
+        # Извлекаем текст каждого элемента
+        for element in elements:
+            text = element.text.strip()  # Убираем лишние пробелы
+            if text:  # Если текст существует (не пустой)
+                elements_text.append(text)
+            else:
+                # Можно добавить информацию о том, что элемент не содержит текста
+                elements_text.append(f"Element with no text: {element.tag_name}")
+
+        for el in elements_text:
+            print(el)
+        return elements_text
+
+    def select_hotel_filter(self):
+        hotel_filter = self.driver.find_element(AppiumBy.XPATH, '//*[@text="Hotels"]')
+        hotel_filter.click()
+
 
     def search_hotel(self):
         try:
@@ -70,14 +93,23 @@ class TestAppium(unittest.TestCase):
 
         try:
             self.driver.switch_to.active_element.send_keys(self.hotel_name)
+            time.sleep(3)
         except:
             self.fail("Не удалось ввести текст в поле поиска!")
 
-        # self.select_hotel_filter()
+        self.select_hotel_filter()
+        # self.get_all_elements()
 
-        results = self.driver.find_elements(By.CLASS_NAME, "android.widget.TextView")
-        results[0].click()
-        time.sleep(5)
+        # result = self.driver.find_element(AppiumBy.XPATH, '//*[@text="The Grosvenor Hotel"]')
+        # result.click()
+
+        results = self.driver.find_elements(AppiumBy.CLASS_NAME, "android.widget.TextView")
+        for result in results:
+            print(result.text)
+            if result.text.strip() == "The Grosvenor Hotel":
+                result.click()
+                break
+        time.sleep(3)
 
     def test_search_and_collect_data(self):
         self.open_tripadvisor()
