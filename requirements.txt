@@ -1,0 +1,2 @@
+ Appium-Python-Client==4.5.1
+python-dotenv==1.0.1
