@@ -1,2 +1,4 @@
- Appium-Python-Client==4.5.1
+Appium-Python-Client==4.5.1
 python-dotenv==1.0.1
+dotenv~=0.9.9
+selenium~=4.29.0
