@@ -12,11 +12,15 @@ from selenium.common import NoSuchElementException
 load_dotenv()
 appium_server_url = 'http://localhost:4723'
 
+DATES = ["12,03", "16,03", "17,03", "25,03"]
+
 MONTHS_MAP = {
     "01": "January", "02": "February", "03": "March", "04": "April",
     "05": "May", "06": "June", "07": "July", "08": "August",
     "09": "September", "10": "October", "11": "November", "12": "December"
 }
+
+PROVIDERS = ("Booking.com", "Priceline", "Vio.com", "Agoda.com", "eDreams", "StayForLong", "ZenHotels.com")
 
 
 class TestAppium(unittest.TestCase):
@@ -63,7 +67,7 @@ class TestAppium(unittest.TestCase):
             search_box.click()
             time.sleep(2)
             search_box.send_keys("Tripadvisor")
-            time.sleep(2)
+            time.sleep(3)
         except:
             self.fail("Field 'Search' was not found!")
 
@@ -90,9 +94,7 @@ class TestAppium(unittest.TestCase):
                 # Можно добавить информацию о том, что элемент не содержит текста
                 elements_text.append(f"Element with no text: {element.tag_name}")
 
-        # for el in elements_text:
-        #     print(el)
-        return elements_text
+        return elements
 
     def select_hotel_filter(self):
         hotel_filter = self.driver.find_element(AppiumBy.XPATH, '//*[@text="Hotels"]')
@@ -131,7 +133,17 @@ class TestAppium(unittest.TestCase):
                 el.click()
                 break
 
-    def select_dates(self, start_date, end_date):
+    def swipe_up(self):
+        """
+        Свайпает вверх, чтобы найти недостающие даты.
+        """
+        size = self.driver.get_window_size()
+        start_x = size["width"] // 2
+        start_y = size["height"] * 0.8
+        end_y = size["height"] * 0.5
+        self.driver.swipe(start_x, start_y, start_x, end_y, 1000)
+
+    def select_dates(self, start_date):
         """
         Выбирает даты в календаре, если они свободны.
 
@@ -141,57 +153,42 @@ class TestAppium(unittest.TestCase):
         :return: str, цена или ошибка
         """
 
-        def is_date_available(date):
-            """
-            Проверяет, доступна ли указанная дата через `isEnabled()`.
-            """
-            print(date)
-            try:
-                el = self.driver.find_element(AppiumBy.XPATH, f'//android.widget.TextView[@text="{date}"]')
-                print(el)
-                return el.is_enabled()  # Если дата доступна для клика
-            except NoSuchElementException:
-                return False  # Даты нет на экране
-
-        def swipe_up():
-            """
-            Свайпает вверх, чтобы найти недостающие даты.
-            """
-            size = self.driver.get_window_size()
-            start_x = size["width"] // 2
-            start_y = size["height"] * 0.8
-            end_y = size["height"] * 0.5
-            self.driver.swipe(start_x, start_y, start_x, end_y, 1000)
-
         def get_month_name(date_str):
+            print(date_str)
             """Преобразует 'dd,mm' в название месяца"""
             day, month = date_str.split(",")
             return MONTHS_MAP.get(month), day
 
         start_month, start_day = get_month_name(start_date)
-        end_month, end_day = get_month_name(end_date)
-        print(start_month, end_month)
+        print(start_month)
 
         # Поиск нужного месяца (свайпаем, если даты не видны)
         max_swipes = 15
         for _ in range(max_swipes):
             try:
+                time.sleep(2)
                 month_element = self.driver.find_element(AppiumBy.XPATH,
                                                          f'//android.widget.TextView[contains(@text, "{start_month}")]')
                 break
             except NoSuchElementException:
-                swipe_up()
+                self.swipe_up()
         else:
             raise Exception(f"Не удалось найти месяц {start_month}!")
 
         # Проверяем доступность и кликаем
-        if not is_date_available(start_day):
-            raise Exception(f"Дата {start_day} {start_month} занята!")
-        self.driver.find_element(AppiumBy.XPATH, f'//android.widget.TextView[@text="{start_day}"]').click()
+        try:
+            self.driver.find_element(AppiumBy.XPATH, f'//android.widget.TextView[@text="{start_day}"]').click()
 
-        if not is_date_available(end_day):
-            raise Exception(f"Дата {end_day} {end_month} занята!")
-        self.driver.find_element(AppiumBy.XPATH, f'//android.widget.TextView[@text="{end_day}"]').click()
+        except:
+            print(f"❌ Не удалось найти дату {start_day},{start_month}")
+
+        # Выбираем следующий день
+        next_day = str(int(start_day) + 1)
+        try:
+            self.driver.find_element(AppiumBy.XPATH, f'//android.widget.TextView[@text="{next_day}"]').click()
+
+        except:
+            print(f"❌ Не удалось найти следующую дату {next_day},{start_month}")
 
         # Нажимаем "Apply"
         try:
@@ -200,6 +197,81 @@ class TestAppium(unittest.TestCase):
         except NoSuchElementException:
             raise Exception("Не удалось найти кнопку Apply.")
 
+    def tap_view_all_button(self):
+        try:
+            # Поиск кнопки, содержащей "View all "
+            time.sleep(3)
+            button = self.driver.find_element(AppiumBy.XPATH, "//*[contains(@text, 'View all ')]")
+            button.click()
+            print("Кнопка 'View all' нажата.")
+        except Exception as e:
+            print("Кнопка 'View all' не найдена:", e)
+
+    def get_providers_and_prices(self):
+        """Собирает список провайдеров и цен, свайпая вверх при необходимости."""
+        time.sleep(2)
+        MAX_SWIPES = 5  # Ограничение на количество свайпов
+
+        all_providers_prices = set()  # Используем set() для хранения уникальных данных
+        swipe_count = 0
+
+        while swipe_count < MAX_SWIPES:
+            all_elements = self.driver.find_elements(AppiumBy.XPATH, "//*")
+
+            providers_prices = []
+
+            for element in all_elements:
+                # Пробуем разные способы получить текст
+                text = element.text.strip() or element.get_attribute("name") or element.get_attribute(
+                    "content-desc") or ""
+
+                if text:
+                    # Если найденное имя есть в списке PROVIDERS, сохраняем
+                    if any(provider.lower() in text.lower() for provider in PROVIDERS):
+                        providers_prices.append({"provider": text, "price": None})
+
+                    # Если текст — это цена (например, "$92"), то тоже добавляем
+                    elif "$" in text:
+                        providers_prices.append({"provider": None, "price": text})
+
+            # Объединяем провайдеров с их ценами
+            temp_provider = None
+            final_result = []
+
+            print("Providers len: ", len(providers_prices))
+
+            for item in providers_prices:
+                if item["provider"]:
+                    temp_provider = item["provider"]
+                elif item["price"] and temp_provider:
+                    final_result.append((temp_provider, item["price"]))
+                    temp_provider = None  # Сбрасываем, чтобы не привязывать к следующей цене
+
+            # Добавляем только новые данные
+            new_data = set(final_result) - all_providers_prices
+
+            print(f"Final res: {final_result}")
+            print(f"All prov price: {all_providers_prices}")
+            print(f"New data: {new_data}")
+
+            if not new_data:
+                print("Новых данных нет, завершаем поиск.")
+                break  # Если после свайпа ничего не поменялось, выходим из цикла
+
+            all_providers_prices.update(new_data)  # Обновляем общий список
+
+            print(f"Свайп {swipe_count + 1}: добавлены {len(new_data)} новых записей.")
+
+            # Делаем свайп вверх
+            self.swipe_up()
+            time.sleep(2)  # Даем время на подгрузку новых элементов
+
+            swipe_count += 1
+
+        print("Финальный результат:", all_providers_prices)
+        return all_providers_prices
+
+    def get_price(self):
         # Ожидание загрузки цены
         timeout = 10
         start_time = time.time()
@@ -212,13 +284,19 @@ class TestAppium(unittest.TestCase):
             except NoSuchElementException:
                 time.sleep(1)
 
-        raise Exception("Цена не подгрузилась!")
+        return "Цена не подгрузилась!"
 
     def test_search_and_collect_data(self):
         # self.open_tripadvisor()
         # self.search_hotel()
-        self.open_calendar()
-        self.select_dates("11,04", "12,04")
+        # self.tap_view_all_button()
+        # for date in DATES:
+        #     self.open_calendar()
+        #     self.select_dates(date)
+
+        cd = self.get_providers_and_prices()
+        print(cd)
+        # self.get_price()
 
     def tearDown(self) -> None:
         if self.driver:
