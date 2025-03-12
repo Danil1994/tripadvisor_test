@@ -1,0 +1,60 @@
+{
+    "The Grosvenor Hotel": {
+        "12,03": {
+            "The dates indicated are already booked": {
+                "price": "",
+                "screenshot": ""
+            }
+        },
+        "16,03": {
+            "Vio.com": {
+                "price": "$92",
+                "screenshot": "screenshots\\Viocom_The_Grosvenor_Hotel.png"
+            },
+            "eDreams": {
+                "price": "$92",
+                "screenshot": "screenshots\\eDreams_The_Grosvenor_Hotel.png"
+            },
+            "Agoda.com": {
+                "price": "$92",
+                "screenshot": "screenshots\\Agodacom_The_Grosvenor_Hotel.png"
+            },
+            "Priceline": {
+                "price": "$92",
+                "screenshot": "screenshots\\Priceline_The_Grosvenor_Hotel.png"
+            },
+            "Booking.com": {
+                "price": "$92",
+                "screenshot": "screenshots\\Bookingcom_The_Grosvenor_Hotel.png"
+            }
+        },
+        "17,03": {
+            "The dates indicated are already booked": {
+                "price": "",
+                "screenshot": ""
+            }
+        },
+        "25,03": {
+            "Priceline": {
+                "price": "$87",
+                "screenshot": "screenshots\\Priceline_The_Grosvenor_Hotel.png"
+            },
+            "eDreams": {
+                "price": "$87",
+                "screenshot": "screenshots\\eDreams_The_Grosvenor_Hotel.png"
+            },
+            "Vio.com": {
+                "price": "$87",
+                "screenshot": "screenshots\\Viocom_The_Grosvenor_Hotel.png"
+            },
+            "Booking.com": {
+                "price": "$87",
+                "screenshot": "screenshots\\Bookingcom_The_Grosvenor_Hotel.png"
+            },
+            "Agoda.com": {
+                "price": "$87",
+                "screenshot": "screenshots\\Agodacom_The_Grosvenor_Hotel.png"
+            }
+        }
+    }
+}

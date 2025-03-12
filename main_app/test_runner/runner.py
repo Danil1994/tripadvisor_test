@@ -1,3 +1,4 @@
+import json
 import os
 import time
 import unittest
@@ -133,6 +134,16 @@ class TestAppium(unittest.TestCase):
                 el.click()
                 break
 
+    def swipe_down(self):
+        """
+        Свайпает вверх, чтобы найти недостающие даты.
+        """
+        size = self.driver.get_window_size()
+        start_x = size["width"] // 2
+        start_y = size["height"] * 0.5
+        end_y = size["height"] * 0.8
+        self.driver.swipe(start_x, start_y, start_x, end_y, 1000)
+
     def swipe_up(self):
         """
         Свайпает вверх, чтобы найти недостающие даты.
@@ -142,6 +153,24 @@ class TestAppium(unittest.TestCase):
         start_y = size["height"] * 0.8
         end_y = size["height"] * 0.5
         self.driver.swipe(start_x, start_y, start_x, end_y, 1000)
+
+    def swipe_to_top(self):
+        previous_page_source = None  # Храним предыдущий экран
+        max_swipes = 10  # Лимит на количество свайпов
+
+        for _ in range(max_swipes):
+            self.swipe_down()
+            time.sleep(1)  # Ждем загрузки
+
+            # Получаем HTML/структуру экрана
+            current_page_source = self.driver.page_source
+
+            # Если экран не изменился — значит, достигли верха
+            if current_page_source == previous_page_source:
+                print("Достигнут верх страницы.")
+                break
+
+            previous_page_source = current_page_source
 
     def select_dates(self, start_date):
         """
@@ -207,13 +236,23 @@ class TestAppium(unittest.TestCase):
         except Exception as e:
             print("Кнопка 'View all' не найдена:", e)
 
+    def take_screenshot(self, screenshot_name):
+        """ Делает скриншот и сохраняет в папке screenshots/ """
+        screenshots_dir = "screenshots"
+        os.makedirs(screenshots_dir, exist_ok=True)  # Создаем папку, если её нет
+        file_path = os.path.join(screenshots_dir, f"{screenshot_name}.png")
+        self.driver.save_screenshot(file_path)
+        return file_path
+
     def get_providers_and_prices(self):
         """Собирает список провайдеров и цен, свайпая вверх при необходимости."""
         time.sleep(2)
-        MAX_SWIPES = 5  # Ограничение на количество свайпов
+        MAX_SWIPES = 5
 
-        all_providers_prices = set()  # Используем set() для хранения уникальных данных
+        all_providers_prices = set()
         swipe_count = 0
+
+        self.swipe_to_top()
 
         while swipe_count < MAX_SWIPES:
             all_elements = self.driver.find_elements(AppiumBy.XPATH, "//*")
@@ -244,15 +283,13 @@ class TestAppium(unittest.TestCase):
                 if item["provider"]:
                     temp_provider = item["provider"]
                 elif item["price"] and temp_provider:
-                    final_result.append((temp_provider, item["price"]))
+                    screenshot_name = f"{temp_provider}_{self.hotel_name}".replace(" ", "_").replace(".", "")
+                    screenshot_path = self.take_screenshot(screenshot_name)
+                    final_result.append((temp_provider, item["price"], screenshot_path))
                     temp_provider = None  # Сбрасываем, чтобы не привязывать к следующей цене
 
             # Добавляем только новые данные
             new_data = set(final_result) - all_providers_prices
-
-            print(f"Final res: {final_result}")
-            print(f"All prov price: {all_providers_prices}")
-            print(f"New data: {new_data}")
 
             if not new_data:
                 print("Новых данных нет, завершаем поиск.")
@@ -262,45 +299,63 @@ class TestAppium(unittest.TestCase):
 
             print(f"Свайп {swipe_count + 1}: добавлены {len(new_data)} новых записей.")
 
-            # Делаем свайп вверх
             self.swipe_up()
-            time.sleep(2)  # Даем время на подгрузку новых элементов
+            time.sleep(2)
 
             swipe_count += 1
 
+        if len(all_providers_prices)==0:
+            all_providers_prices={("The dates indicated are already booked", "", "")}
+
         print("Финальный результат:", all_providers_prices)
+
         return all_providers_prices
-
-    def get_price(self):
-        # Ожидание загрузки цены
-        timeout = 10
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            try:
-                price_element = self.driver.find_element(AppiumBy.XPATH,
-                                                         '//android.widget.TextView[contains(@text, "$")]')
-                print(f"Цена: {price_element.text}")
-                return f"Цена: {price_element.text}"
-            except NoSuchElementException:
-                time.sleep(1)
-
-        return "Цена не подгрузилась!"
 
     def test_search_and_collect_data(self):
         # self.open_tripadvisor()
         # self.search_hotel()
         # self.tap_view_all_button()
-        # for date in DATES:
-        #     self.open_calendar()
-        #     self.select_dates(date)
-
-        cd = self.get_providers_and_prices()
-        print(cd)
-        # self.get_price()
+        for date in DATES:
+            self.open_calendar()
+            self.select_dates(date)
+            info = self.get_providers_and_prices()
+            save_to_json(self.hotel_name, date, info)
 
     def tearDown(self) -> None:
         if self.driver:
             self.driver.quit()
+
+
+def save_to_json(hotel_name: str, date: str, info_datas: set):
+    """ Сохраняет данные о ценах и скриншотах в JSON, дописывая новые данные """
+
+    json_file = "data.json"
+
+    # Проверяем, есть ли уже файл с данными
+    if os.path.exists(json_file):
+        with open(json_file, "r", encoding="utf-8") as file:
+            try:
+                data = json.load(file)
+            except json.JSONDecodeError:
+                data = {}  # Если файл пуст, создаем новый словарь
+    else:
+        data = {}
+
+    # Обновляем данные
+    hotel_data = data.setdefault(hotel_name, {})
+    date_data = hotel_data.setdefault(date, {})
+
+    for provider, price, screenshot in info_datas:
+        date_data[provider] = {
+            "price": price,
+            "screenshot": screenshot
+        }
+
+    # Сохраняем обратно в JSON
+    with open(json_file, "w", encoding="utf-8") as file:
+        json.dump(data, file, indent=4, ensure_ascii=False)
+
+    print(f"Данные успешно сохранены в {json_file}")
 
 
 if __name__ == '__main__':
