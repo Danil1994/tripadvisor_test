@@ -30,7 +30,7 @@ class TestAppium(unittest.TestCase):
     }
 
     @staticmethod
-    def generate_dates():
+    def generate_dates() -> list[str, str]:
         today = datetime.today()
         return [
             today.strftime("%d.%m"),
@@ -63,7 +63,6 @@ class TestAppium(unittest.TestCase):
         pass
 
     def open_tripadvisor(self) -> None:
-        """Открывает App Drawer и запускает Tripadvisor"""
         # 1.Swipe up (open menu)
         self.driver.swipe(500, 1800, 500, 500, 500)
 
@@ -84,62 +83,56 @@ class TestAppium(unittest.TestCase):
         except:
             self.fail("Tripadvisor was not found!")
 
-    def close_login_popup(self):
-        """ Проверяет, есть ли окно регистрации/авторизации, и закрывает его """
+    def close_login_popup(self) -> None:
+        """Checks if there is a registration/authorization window and closes it"""
         try:
             if self.driver.find_element(AppiumBy.XPATH, "//*[contains(@text, 'Create account')]"):
                 swipe.down_much(self)
-                print("Окно регистрации закрыто.")
+                print("Registration window was closed.")
         except NoSuchElementException:
-            print("Окно регистрации не найдено.")
+            print("Registration window was not found.")
 
-    def select_hotel_filter(self):
+    def select_hotel_filter(self) -> None:
         hotel_filter = self.driver.find_element(AppiumBy.XPATH, '//*[@text="Hotels"]')
         hotel_filter.click()
         time.sleep(2)
 
-    def search_hotel(self):
+    def search_hotel(self) -> None:
         try:
             search_box = self.driver.find_element(AppiumBy.XPATH, '//*[@text="Search"]')
             search_box.click()
             time.sleep(2)
         except:
-            self.fail("Не удалось найти кнопку поиска!")
+            self.fail("'Search' button was not found!")
 
         try:
             self.driver.switch_to.active_element.send_keys(self.hotel_name)
             time.sleep(3)
         except:
-            self.fail("Не удалось ввести текст в поле поиска!")
+            self.fail("Failed to enter text in the search field!")
 
         self.select_hotel_filter()
 
         results = self.driver.find_elements(AppiumBy.CLASS_NAME, "android.widget.TextView")
         for result in results:
-            if result.text.strip() == "The Grosvenor Hotel":
+            if result.text.strip() == self.hotel_name:
                 result.click()
                 break
 
-    def validate_date(self, date_input):
-        # Если дата — число, приводим к строке
+    def validate_date(self, date_input: (int, str)) -> [str, None]:
         date_input = str(date_input)
-
-        # Заменяем запятую на точку
         date_input = date_input.replace(",", ".")
 
         try:
-            # Разбираем день и месяц
+            # separate date
             day, month = map(int, date_input.split("."))
-
-            # Проверяем корректность даты, используя datetime
-            datetime(year=2024, month=month, day=day)  # 2024 — високосный год, подходит для проверки
-
-            # Возвращаем дату в правильном формате
+            # valid checking
+            datetime(year=2024, month=month, day=day)
             return f"{day:02}.{month:02}"
         except (ValueError, IndexError):
             return None
 
-    def open_calendar(self):
+    def open_calendar(self) -> None:
         elements = self.driver.find_elements(AppiumBy.CLASS_NAME, "android.widget.TextView")
         for el in elements:
             text = el.text
@@ -147,68 +140,66 @@ class TestAppium(unittest.TestCase):
                 el.click()
                 break
 
-    def select_dates(self, start_date):
+    def select_dates(self, start_date: str) -> None:
         """
-        Выбирает даты в календаре, если они свободны.
-
-        :param driver: WebDriver instance
-        :param start_date: str, дата начала в формате '20'
-        :return: str, или ошибка
+        Selects dates in calendar
+        :param start_date: str, dd.mm
+        :return: str, or error
         """
+        # Swipe to top to be shure that we start from beginning
         swipe.to_top(self)
 
-        def get_next_day(date_str):
+        def get_next_day(date_str: str) -> str:
             day, month = date_str.split(".")
             today = datetime.today()
             try:
                 current_date = datetime(today.year, int(month), int(day))
             except ValueError:
-                return "Некорректное число месяца"
+                return "Uncorrect date of month"
 
             next_date = current_date + timedelta(days=1)
             return next_date.strftime("%d.%m")
 
-        def get_month_name(date_str):
-            """Преобразует 'dd,mm' в название месяца"""
+        def get_month_name(date_str: str) -> [str, str]:
+            """Transform 'dd,mm' into dd. month name"""
             day, month = date_str.split(".")
             return self.MONTHS_MAP.get(month), day
 
-        def swipe_and_find_date(day, month):
-            # Поиск нужного месяца (свайпаем, если даты не видны)
+        def swipe_and_find_date(day:int, month:str)->None:
+            # Search for the desired month (swipe if dates or month were not found)
             max_swipes = 15
             for _ in range(max_swipes):
                 try:
                     time.sleep(3)
                     month_element = self.driver.find_element(AppiumBy.XPATH,
                                                              f'//android.widget.TextView[contains(@text, "{month}")]')
-                    month_location = month_element.location  # Получаем координаты месяца
-                    month_size = month_element.size  # Получаем размеры блока месяца
+                    month_location = month_element.location  # get month element`s location
                     break
                 except NoSuchElementException:
                     swipe.up(self)
             else:
-                raise Exception(f"Не удалось найти месяц {month}!")
+                raise Exception(f"Unable to find month {month}!")
 
-            # Поиск числа внутри указанного месяца
+            # Search for the desired date under month element`s
             try:
                 all_days = self.driver.find_elements(AppiumBy.XPATH, f'//android.widget.TextView[@text="{day}"]')
 
                 for day_element in all_days:
                     day_location = day_element.location
-                    # Проверяем, находится ли число ниже найденного месяца
+                    # Check if the number is below the found month
                     if day_location['y'] > month_location['y']:
                         day_element.click()
                         return
 
-                raise Exception(f"Дата {day}.{month} найдена, но вне границ месяца!")
+                raise Exception(f"Date {day}.{month} was found, but not in board of month!")
 
             except NoSuchElementException:
-                print(f"❌ Не удалось найти дату {day}.{month}")
+                print(f"❌ Date was not found {day}.{month}")
 
         start_month, start_day = get_month_name(start_date)
         swipe_and_find_date(int(start_day), start_month)
 
-        # Выбираем следующий день
+        # Tap next day, because we need choose two days for registration
         next_day = get_next_day(start_date)
         next_month, next_day = get_month_name(next_day)
 
@@ -218,36 +209,39 @@ class TestAppium(unittest.TestCase):
             apply_button = self.driver.find_element(AppiumBy.XPATH, '//android.widget.Button[@text="Apply"]')
             apply_button.click()
         except NoSuchElementException:
-            raise Exception("Не удалось найти кнопку Apply.")
+            raise Exception("Button 'Apply' was not found.")
 
-    def tap_view_all_button(self):
+    def tap_view_all_button(self)->None:
+        # This func tries to open "View all deal" button
+        # there will be list of providers with price
+        # sometimes this button not loaded and need choose others dates
         max_attempts = 5
         day = 1
         for attempt in range(max_attempts):
-            print(f"Попытка {attempt + 1} из {max_attempts}...")
+            print(f"Attempt {attempt + 1} from {max_attempts}...")
 
-            # Поиск кнопки "View all"
+            # Founding button "View all..."
             time.sleep(5)
             buttons = self.driver.find_elements(AppiumBy.XPATH, "//*[contains(@text, 'View all ')]")
 
-            if buttons:  # Если кнопка найдена
-                print("✅ Кнопка найдена! Нажимаем...")
+            if buttons:  # If button was found
+                print("✅ Button was found! Click...")
                 buttons[0].click()
-                return  # Выход из функции после успешного нажатия
+                return
 
-            print("❌ Кнопка не найдена. Пробуем изменить дату...")
+            print("❌ Button was not found. Change date...")
             self.open_calendar()
             tomorrow = datetime.today() + timedelta(days=day)
             self.select_dates(tomorrow.strftime("%d.%m"))
             day += 1
 
-        # Если после 5 попыток кнопка не найдена
-        print("⛔ Отель слишком занят, кнопка 'View all' так и не появилась!")
-        info = {("Отель слишком занят, нет свободных дат ближайшие 5 дней", "", "")}
+        # If after 5 attempts button not founded
+        print("⛔ The hotel is too busy, the 'View all' button never appeared")
+        info = {("The hotel is too busy, no dates available for the next 5 days", "", "")}
         save_to_json(self.hotel_name, "", info)
 
-    def get_providers_and_prices(self, date):
-        """Собирает список провайдеров и цен, свайпая вверх при необходимости."""
+    def get_providers_and_prices(self, date:str)-> set[tuple]:
+        """Collects a list of providers and prices, swiping up when needed."""
         time.sleep(2)
         MAX_SWIPES = 5
 
@@ -262,20 +256,20 @@ class TestAppium(unittest.TestCase):
             providers_prices = []
 
             for element in all_elements:
-                # Пробуем разные способы получить текст
+                # Try different way to get element`s text
                 text = element.text.strip() or element.get_attribute("name") or element.get_attribute(
                     "content-desc") or ""
 
                 if text:
-                    # Если найденное имя есть в списке PROVIDERS, сохраняем
+                    # If the found name is in the PROVIDERS list, save it
                     if any(provider.lower() in text.lower() for provider in PROVIDERS):
                         providers_prices.append({"provider": text, "price": None})
 
-                    # Если текст — это цена (например, "$92"), то тоже добавляем
+                    # If text it is price (for example "$92"), save it like price
                     elif "$" in text:
                         providers_prices.append({"provider": None, "price": text})
 
-            # Объединяем провайдеров с их ценами
+            # Combine providers with their prices
             temp_provider = None
             final_result = []
 
@@ -286,18 +280,18 @@ class TestAppium(unittest.TestCase):
                     screenshot_name = f"{date}_{temp_provider}_{self.hotel_name}".replace(" ", "_")
                     screenshot_path = take_screenshot(self, screenshot_name)
                     final_result.append((temp_provider, item["price"], screenshot_path))
-                    temp_provider = None  # Сбрасываем, чтобы не привязывать к следующей цене
+                    temp_provider = None  # Drop, for next price
 
-            # Добавляем только новые данные
+            # Add only new data
             new_data = set(final_result) - all_providers_prices
 
             if not new_data:
-                print("Новых данных нет, завершаем поиск.")
-                break  # Если после свайпа ничего не поменялось, выходим из цикла
+                print("No new data, finish search.")
+                break  # If after swipe change nothing break cycle
 
-            all_providers_prices.update(new_data)  # Обновляем общий список
+            all_providers_prices.update(new_data)
 
-            print(f"Свайп {swipe_count + 1}: добавлены {len(new_data)} новых записей.")
+            print(f"Swipe {swipe_count + 1}: were added {len(new_data)} new records.")
 
             swipe.up(self)
             time.sleep(2)
@@ -309,11 +303,12 @@ class TestAppium(unittest.TestCase):
             screenshot_path = take_screenshot(self, screenshot_name)
             all_providers_prices = {("The dates indicated are already booked", "", screenshot_path)}
 
-        print("Финальный результат:", all_providers_prices)
+        print("Final result:", all_providers_prices)
 
         return all_providers_prices
 
     def test_search_and_collect_data(self):
+        # each time.sleep its wait for load
         self.open_tripadvisor()
         time.sleep(9)
         self.close_login_popup()
