@@ -45,10 +45,15 @@ class TestAppium(unittest.TestCase):
         options = UiAutomator2Options()
         options.platform_name = "Android"
         options.automation_name = "uiautomator2"
-        options.device_name = "Android"
-        options.app_package = "com.google.android.apps.nexuslauncher"
-        options.app_activity = "com.google.android.apps.nexuslauncher.NexusLauncherActivity"
-        options.no_reset = True
+
+        device_name = os.getenv("ANDROID_DEVICE_NAME", "Android")  # AVD эмулятор
+        options.device_name = device_name  # Если нет переменной, берется дефолтный эмулятор
+
+        # Определяем тестируемое приложение
+        options.app_package = os.getenv("APP_PACKAGE", "com.google.android.apps.nexuslauncher")
+        options.app_activity = os.getenv("APP_ACTIVITY", "com.google.android.apps.nexuslauncher.NexusLauncherActivity")
+
+        options.no_reset = True  # Не сбрасывать данные приложения
         options.language = "en"
         options.locale = "US"
 
@@ -290,16 +295,14 @@ class TestAppium(unittest.TestCase):
     def test_search_and_collect_data(self):
         # each time.sleep its wait for load
 
-        # self.open_tripadvisor()
-        # wait_for_appear(self.driver, 'Search') or wait_for_appear(self.driver, 'Create account')
-        # self.close_login_popup()
-        # wait_for_appear(self.driver, 'Search')
-        # self.search_hotel()
-        # wait_for_appear(self.driver, self.hotel_name)
-        # # time.sleep(6)
-        # if self.tap_view_all_button():
-        #     wait_for_appear(self.driver, 'Deals')
-        # time.sleep(5)
+        self.open_tripadvisor()
+        wait_for_appear(self.driver, 'Search') or wait_for_appear(self.driver, 'Create account')
+        self.close_login_popup()
+        wait_for_appear(self.driver, 'Search')
+        self.search_hotel()
+        wait_for_appear(self.driver, self.hotel_name)
+        if self.tap_view_all_button():
+            wait_for_appear(self.driver, 'Deals')
         for date in self.dates:
             valid_date = validate_date(date)
             if valid_date:
@@ -313,7 +316,18 @@ class TestAppium(unittest.TestCase):
 
     def tearDown(self) -> None:
         if self.driver:
+            try:
+                # Нажимаем "Назад" многократно, пока не выйдем из приложения
+                for _ in range(10):  # Лимит в 10 нажатий
+                    self.driver.press_keycode(4)  # KEYCODE_BACK
+                    time.sleep(1)  # Даем время на обработку
+
+
+            except Exception as e:
+                print(f"Ошибка при выходе из приложения: {e}")
+
             self.driver.quit()
+
 
 
 if __name__ == '__main__':
