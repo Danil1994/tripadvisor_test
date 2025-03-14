@@ -21,7 +21,7 @@ The test follows these steps:
 4. **Ensure dates are selected from the beginning** (scroll to the top)  
 5. **Extract prices from different providers**  
 6. **Take and save a screenshot for each price**  
-7. **Store the results in `{curent day.month_houns.minute_data}.json`**  
+7. **Store the results in `{curent day.month_houns.minute}_data.json`**  
 
 ### 📂 **JSON Output Format**
 ```json

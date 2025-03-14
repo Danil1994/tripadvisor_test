@@ -44,10 +44,8 @@ class TestAppium(unittest.TestCase):
         options = UiAutomator2Options()
         options.platform_name = "Android"
         options.automation_name = "uiautomator2"
-
         device_name = os.getenv("ANDROID_DEVICE_NAME", "Android")
         options.device_name = device_name
-
         options.app_package = os.getenv("APP_PACKAGE", "com.google.android.apps.nexuslauncher")
         options.app_activity = os.getenv("APP_ACTIVITY", "com.google.android.apps.nexuslauncher.NexusLauncherActivity")
 
@@ -55,7 +53,7 @@ class TestAppium(unittest.TestCase):
         options.language = "en"
         options.locale = "US"
 
-        self.file_name=f"{datetime.today().strftime('%d.%m_%H.%M')}_data"
+        self.file_name = f"{datetime.today().strftime('%d.%m_%H.%M')}_data"
 
         self.driver = webdriver.Remote(appium_server_url, options=options)
         self.hotel_name = os.getenv("HOTEL_NAME", "The  Grosvenor Hotel")
@@ -218,7 +216,7 @@ class TestAppium(unittest.TestCase):
         # If after 5 attempts button not founded
         print("⛔ The hotel is too busy, the 'View all' button never appeared")
         info = {("The hotel is too busy, no dates available for the next 5 days", "", "")}
-        save_to_json(self.hotel_name, "", info)
+        save_to_json(self.file_name, self.hotel_name, "", info)
         return False
 
     def get_providers_and_prices(self, date: str) -> set[tuple]:
