@@ -1,7 +1,6 @@
 import os
 import time
 import unittest
-
 from datetime import datetime, timedelta
 
 from appium import webdriver
@@ -9,15 +8,15 @@ from appium.options.android import UiAutomator2Options
 from appium.webdriver.common.appiumby import AppiumBy
 from dotenv import load_dotenv
 from selenium.common import NoSuchElementException
-
-from utils.screenshot import take_screenshot
-from utils.utils import get_next_day, validate_date, wait_for_appear, wait_for_disappear
 from utils import swipe
-
+from utils.screenshot import take_screenshot
+from utils.utils import (get_next_day, validate_date, wait_for_appear,
+                         wait_for_disappear)
 from write_read_data import save_to_json
 
 load_dotenv()
-appium_server_url = 'http://localhost:4723'
+
+appium_server_url = os.getenv("APPIUM_SERVER_URL", 'http://localhost:4723')
 
 PROVIDERS = ("Booking.com", "Priceline", "Vio.com", "Agoda.com", "eDreams", "StayForLong", "ZenHotels.com")
 
@@ -46,14 +45,13 @@ class TestAppium(unittest.TestCase):
         options.platform_name = "Android"
         options.automation_name = "uiautomator2"
 
-        device_name = os.getenv("ANDROID_DEVICE_NAME", "Android")  # AVD эмулятор
-        options.device_name = device_name  # Если нет переменной, берется дефолтный эмулятор
+        device_name = os.getenv("ANDROID_DEVICE_NAME", "Android")
+        options.device_name = device_name
 
-        # Определяем тестируемое приложение
         options.app_package = os.getenv("APP_PACKAGE", "com.google.android.apps.nexuslauncher")
         options.app_activity = os.getenv("APP_ACTIVITY", "com.google.android.apps.nexuslauncher.NexusLauncherActivity")
 
-        options.no_reset = True  # Не сбрасывать данные приложения
+        options.no_reset = True
         options.language = "en"
         options.locale = "US"
 
@@ -62,8 +60,6 @@ class TestAppium(unittest.TestCase):
         dates_env = os.getenv("DATES", "")
 
         self.dates = dates_env.split(",") if dates_env else self.generate_dates()
-        # if not self.dates:
-        #     self.dates = self.generate_dates()
 
     def SetUp(self):
         pass
@@ -80,13 +76,13 @@ class TestAppium(unittest.TestCase):
             time.sleep(2)
             search_box.send_keys("Tripadvisor")
             time.sleep(3)
-        except:
+        except NoSuchElementException:
             self.fail("Field 'Search' was not found!")
 
         try:
             tripadvisor_icon = self.driver.find_element(AppiumBy.XPATH, '//*[@text="Tripadvisor"]')
             tripadvisor_icon.click()
-        except:
+        except NoSuchElementException:
             self.fail("Tripadvisor was not found!")
 
     def close_login_popup(self) -> None:
@@ -108,13 +104,13 @@ class TestAppium(unittest.TestCase):
             search_box = self.driver.find_element(AppiumBy.XPATH, '//*[@text="Search"]')
             search_box.click()
             time.sleep(2)
-        except:
+        except NoSuchElementException:
             self.fail("'Search' button was not found!")
 
         try:
             self.driver.switch_to.active_element.send_keys(self.hotel_name)
             time.sleep(3)
-        except:
+        except NoSuchElementException:
             self.fail("Failed to enter text in the search field!")
 
         self.select_hotel_filter()
@@ -317,17 +313,15 @@ class TestAppium(unittest.TestCase):
     def tearDown(self) -> None:
         if self.driver:
             try:
-                # Нажимаем "Назад" многократно, пока не выйдем из приложения
-                for _ in range(10):  # Лимит в 10 нажатий
+                # Click "Back" many times to go out from application
+                for _ in range(10):
                     self.driver.press_keycode(4)  # KEYCODE_BACK
-                    time.sleep(1)  # Даем время на обработку
-
+                    time.sleep(1)  # Time for processing
 
             except Exception as e:
-                print(f"Ошибка при выходе из приложения: {e}")
+                print(f"Error exiting the application: {e}")
 
             self.driver.quit()
-
 
 
 if __name__ == '__main__':

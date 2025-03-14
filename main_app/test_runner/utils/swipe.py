@@ -2,15 +2,14 @@ import time
 
 
 def down_little(self):
-
     size = self.driver.get_window_size()
     start_x = size["width"] // 2
     start_y = size["height"] * 0.7
     end_y = size["height"] * 0.9
     self.driver.swipe(start_x, start_y, start_x, end_y, 1000)
 
-def down_much(self):
 
+def down_much(self):
     size = self.driver.get_window_size()
     start_x = size["width"] // 2
     start_y = size["height"] * 0.5
@@ -18,9 +17,7 @@ def down_much(self):
     self.driver.swipe(start_x, start_y, start_x, end_y, 1000)
 
 
-
 def up(self):
-
     size = self.driver.get_window_size()
     start_x = size["width"] // 2
     start_y = size["height"] * 0.8
@@ -40,7 +37,7 @@ def to_top(self):
 
         # If screen not changed it means we on the top
         if current_page_source == previous_page_source:
-            print("Top reached.")
+            print("Top was reached.")
             break
 
         previous_page_source = current_page_source

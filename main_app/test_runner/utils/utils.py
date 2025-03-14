@@ -1,10 +1,9 @@
 import time
-
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
-from appium.webdriver.common.appiumby import AppiumBy
-
 from datetime import datetime, timedelta
+
+from appium.webdriver.common.appiumby import AppiumBy
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 def validate_date(date_input: (int, str)) -> [str, None]:
@@ -35,13 +34,13 @@ def get_next_day(date_str: str) -> str:
 
 def wait_for_appear(driver, text, timeout=10, poll_frequency=1):
     """
-    Ожидает появления указанного текста на экране.
+    Waits for the specified text to appear on the screen.
 
     :param driver: WebDriver (Appium)
-    :param text: str, текст, который ждем
-    :param timeout: int, максимальное время ожидания (секунды)
-    :param poll_frequency: int, частота проверки наличия текста (секунды)
-    :return: True, если текст появился, иначе False
+    :param text: str, text to wait for
+    :param timeout: int, maximum wait time (seconds)
+    :param poll_frequency: int, frequency of checking for text (seconds)
+    :return: True, if text appears, otherwise False
     """
     time.sleep(1)
     try:
@@ -57,13 +56,13 @@ def wait_for_appear(driver, text, timeout=10, poll_frequency=1):
 
 def wait_for_disappear(driver, text, timeout=10, poll_frequency=1):
     """
-    Ожидает появления указанного текста на экране.
+    Waits for the specified text to disappear on the screen.
 
     :param driver: WebDriver (Appium)
-    :param text: str, текст, который ждем
-    :param timeout: int, максимальное время ожидания (секунды)
-    :param poll_frequency: int, частота проверки наличия текста (секунды)
-    :return: True, если текст появился, иначе False
+    :param text: str, text to wait for
+    :param timeout: int, maximum wait time (seconds)
+    :param poll_frequency: int, frequency of checking for text (seconds)
+    :return: True, if text disappears, otherwise False
     """
     time.sleep(1)
     try:
