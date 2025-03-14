@@ -32,7 +32,7 @@ def get_next_day(date_str: str) -> str:
     return next_date.strftime("%d.%m")
 
 
-def wait_for_appear(driver, text, timeout=10, poll_frequency=1):
+def wait_for_appear(driver, text, timeout=15, poll_frequency=1):
     """
     Waits for the specified text to appear on the screen.
 
@@ -54,7 +54,7 @@ def wait_for_appear(driver, text, timeout=10, poll_frequency=1):
         return False
 
 
-def wait_for_disappear(driver, text, timeout=10, poll_frequency=1):
+def wait_for_disappear(driver, text, timeout=15, poll_frequency=1):
     """
     Waits for the specified text to disappear on the screen.
 

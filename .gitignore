@@ -156,4 +156,4 @@ yarn-error.log*
 
 .bin
 *.png
-data.json
+*.json

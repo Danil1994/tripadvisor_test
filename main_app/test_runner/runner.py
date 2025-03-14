@@ -55,6 +55,8 @@ class TestAppium(unittest.TestCase):
         options.language = "en"
         options.locale = "US"
 
+        self.file_name=f"{datetime.today().strftime('%d.%m_%H.%M')}_data"
+
         self.driver = webdriver.Remote(appium_server_url, options=options)
         self.hotel_name = os.getenv("HOTEL_NAME", "The  Grosvenor Hotel")
         dates_env = os.getenv("DATES", "")
@@ -305,10 +307,10 @@ class TestAppium(unittest.TestCase):
                 self.open_calendar()
                 self.select_dates(valid_date)
                 info = self.get_providers_and_prices(valid_date)
-                save_to_json(self.hotel_name, valid_date, info)
+                save_to_json(self.file_name, self.hotel_name, valid_date, info)
             else:
                 info = {("Inputted data are incorrect", "", "")}
-                save_to_json(self.hotel_name, date, info)
+                save_to_json(self.file_name, self.hotel_name, date, info)
 
     def tearDown(self) -> None:
         if self.driver:

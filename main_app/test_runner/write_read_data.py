@@ -1,10 +1,11 @@
 import json
 import os
+from datetime import datetime
 
 
-def save_to_json(hotel_name: str, date: str, info_datas: set):
+def save_to_json(file_name, hotel_name: str, date: str, info_datas: set):
 
-    json_file = "data.json"
+    json_file = f"{file_name}.json"
 
     # Check file or create new
     if os.path.exists(json_file):
@@ -28,4 +29,4 @@ def save_to_json(hotel_name: str, date: str, info_datas: set):
     with open(json_file, "w", encoding="utf-8") as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
 
-    print(f"Данные успешно сохранены в {json_file}")
+    print(f"Data successfully saved in {json_file}")
