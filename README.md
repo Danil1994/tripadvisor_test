@@ -50,6 +50,15 @@ The test follows these steps:
 # 🔧 Installation Guide
 1️⃣ Install Python and Dependencies
 * Make sure you have Python 3.9+ installed.
+
+* Clone this repositories
+ 
+```commandline
+git clone https://github.com/Danil1994/tripadvisor_test.git
+```
+
+* Open the project and create virtual env
+
 * Then, install the required dependencies:
 ```bash
 pip install -r requirements.txt
@@ -81,6 +90,12 @@ APP_ACTIVITY=com.google.android.apps.nexuslauncher.NexusLauncherActivity
 📌 If not provided, default values will be used.
 
 5️⃣ Run the Test
+
+  **Important.** 
+  
+  The device or emulator must be on the main page of the phone. 
+  
+  After testing, the program will return the device to the home screen.
 ```bash
 python main_app/test_runner/runner.py
 ```
