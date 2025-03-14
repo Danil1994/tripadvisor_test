@@ -222,14 +222,14 @@ class TestAppium(unittest.TestCase):
     def get_providers_and_prices(self, date: str) -> set[tuple]:
         """Collects a list of providers and prices, swiping up when needed."""
         time.sleep(2)
-        MAX_SWIPES = 5
+        max_swipes = 5
 
         all_providers_prices = set()
         swipe_count = 0
 
         swipe.to_top(self)
 
-        while swipe_count < MAX_SWIPES:
+        while swipe_count < max_swipes:
             all_elements = self.driver.find_elements(AppiumBy.XPATH, "//*")
 
             providers_prices = []
