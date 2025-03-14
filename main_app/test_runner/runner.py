@@ -1,7 +1,6 @@
 import os
 import time
 import unittest
-import swipe
 
 from datetime import datetime, timedelta
 
@@ -11,13 +10,14 @@ from appium.webdriver.common.appiumby import AppiumBy
 from dotenv import load_dotenv
 from selenium.common import NoSuchElementException
 
-from screenshot import take_screenshot
+from utils.screenshot import take_screenshot
+from utils.utils import get_next_day, validate_date, wait_for_appear, wait_for_disappear
+from utils import swipe
+
 from write_read_data import save_to_json
 
 load_dotenv()
 appium_server_url = 'http://localhost:4723'
-
-DATES = ["13,03", 16.03, "17.03", "31.03", "32.03"]
 
 PROVIDERS = ("Booking.com", "Priceline", "Vio.com", "Agoda.com", "eDreams", "StayForLong", "ZenHotels.com")
 
@@ -54,10 +54,11 @@ class TestAppium(unittest.TestCase):
 
         self.driver = webdriver.Remote(appium_server_url, options=options)
         self.hotel_name = os.getenv("HOTEL_NAME", "The  Grosvenor Hotel")
-        dates_env = os.getenv("DATES")
+        dates_env = os.getenv("DATES", "")
 
-        if not dates_env:
-            self.dates = self.generate_dates()
+        self.dates = dates_env.split(",") if dates_env else self.generate_dates()
+        # if not self.dates:
+        #     self.dates = self.generate_dates()
 
     def SetUp(self):
         pass
@@ -119,19 +120,6 @@ class TestAppium(unittest.TestCase):
                 result.click()
                 break
 
-    def validate_date(self, date_input: (int, str)) -> [str, None]:
-        date_input = str(date_input)
-        date_input = date_input.replace(",", ".")
-
-        try:
-            # separate date
-            day, month = map(int, date_input.split("."))
-            # valid checking
-            datetime(year=2024, month=month, day=day)
-            return f"{day:02}.{month:02}"
-        except (ValueError, IndexError):
-            return None
-
     def open_calendar(self) -> None:
         elements = self.driver.find_elements(AppiumBy.CLASS_NAME, "android.widget.TextView")
         for el in elements:
@@ -140,70 +128,59 @@ class TestAppium(unittest.TestCase):
                 el.click()
                 break
 
+    def swipe_and_find_date(self, day: int, month: str) -> None:
+        # Search for the desired month (swipe if dates or month were not found)
+        max_swipes = 15
+        for _ in range(max_swipes):
+            try:
+                time.sleep(3)
+                month_element = self.driver.find_element(AppiumBy.XPATH,
+                                                         f'//android.widget.TextView[contains(@text, "{month}")]')
+                month_location = month_element.location  # get month element`s location
+                break
+            except NoSuchElementException:
+                swipe.up(self)
+        else:
+            raise Exception(f"Unable to find month {month}!")
+
+        # Search for the desired date under month element`s
+        try:
+            all_days = self.driver.find_elements(AppiumBy.XPATH, f'//android.widget.TextView[@text="{day}"]')
+
+            for day_element in all_days:
+                day_location = day_element.location
+                # Check if the number is below the found month
+                if day_location['y'] > month_location['y']:
+                    day_element.click()
+                    return
+
+            raise Exception(f"Date {day}.{month} was found, but not in board of month!")
+
+        except NoSuchElementException:
+            print(f"❌ Date was not found {day}.{month}")
+
     def select_dates(self, start_date: str) -> None:
         """
         Selects dates in calendar
         :param start_date: str, dd.mm
         :return: str, or error
         """
-        # Swipe to top to be shure that we start from beginning
+        # Swipe to top to be sure that we start from beginning
         swipe.to_top(self)
-
-        def get_next_day(date_str: str) -> str:
-            day, month = date_str.split(".")
-            today = datetime.today()
-            try:
-                current_date = datetime(today.year, int(month), int(day))
-            except ValueError:
-                return "Uncorrect date of month"
-
-            next_date = current_date + timedelta(days=1)
-            return next_date.strftime("%d.%m")
 
         def get_month_name(date_str: str) -> [str, str]:
             """Transform 'dd,mm' into dd. month name"""
             day, month = date_str.split(".")
             return self.MONTHS_MAP.get(month), day
 
-        def swipe_and_find_date(day:int, month:str)->None:
-            # Search for the desired month (swipe if dates or month were not found)
-            max_swipes = 15
-            for _ in range(max_swipes):
-                try:
-                    time.sleep(3)
-                    month_element = self.driver.find_element(AppiumBy.XPATH,
-                                                             f'//android.widget.TextView[contains(@text, "{month}")]')
-                    month_location = month_element.location  # get month element`s location
-                    break
-                except NoSuchElementException:
-                    swipe.up(self)
-            else:
-                raise Exception(f"Unable to find month {month}!")
-
-            # Search for the desired date under month element`s
-            try:
-                all_days = self.driver.find_elements(AppiumBy.XPATH, f'//android.widget.TextView[@text="{day}"]')
-
-                for day_element in all_days:
-                    day_location = day_element.location
-                    # Check if the number is below the found month
-                    if day_location['y'] > month_location['y']:
-                        day_element.click()
-                        return
-
-                raise Exception(f"Date {day}.{month} was found, but not in board of month!")
-
-            except NoSuchElementException:
-                print(f"❌ Date was not found {day}.{month}")
-
         start_month, start_day = get_month_name(start_date)
-        swipe_and_find_date(int(start_day), start_month)
+        self.swipe_and_find_date(int(start_day), start_month)
 
         # Tap next day, because we need choose two days for registration
         next_day = get_next_day(start_date)
         next_month, next_day = get_month_name(next_day)
 
-        swipe_and_find_date(int(next_day), next_month)
+        self.swipe_and_find_date(int(next_day), next_month)
 
         try:
             apply_button = self.driver.find_element(AppiumBy.XPATH, '//android.widget.Button[@text="Apply"]')
@@ -211,7 +188,7 @@ class TestAppium(unittest.TestCase):
         except NoSuchElementException:
             raise Exception("Button 'Apply' was not found.")
 
-    def tap_view_all_button(self)->None:
+    def tap_view_all_button(self) -> bool:
         # This func tries to open "View all deal" button
         # there will be list of providers with price
         # sometimes this button not loaded and need choose others dates
@@ -221,13 +198,13 @@ class TestAppium(unittest.TestCase):
             print(f"Attempt {attempt + 1} from {max_attempts}...")
 
             # Founding button "View all..."
-            time.sleep(5)
+            wait_for_disappear(self.driver, 'Loading')
             buttons = self.driver.find_elements(AppiumBy.XPATH, "//*[contains(@text, 'View all ')]")
 
             if buttons:  # If button was found
                 print("✅ Button was found! Click...")
                 buttons[0].click()
-                return
+                return True
 
             print("❌ Button was not found. Change date...")
             self.open_calendar()
@@ -239,8 +216,9 @@ class TestAppium(unittest.TestCase):
         print("⛔ The hotel is too busy, the 'View all' button never appeared")
         info = {("The hotel is too busy, no dates available for the next 5 days", "", "")}
         save_to_json(self.hotel_name, "", info)
+        return False
 
-    def get_providers_and_prices(self, date:str)-> set[tuple]:
+    def get_providers_and_prices(self, date: str) -> set[tuple]:
         """Collects a list of providers and prices, swiping up when needed."""
         time.sleep(2)
         MAX_SWIPES = 5
@@ -277,7 +255,7 @@ class TestAppium(unittest.TestCase):
                 if item["provider"]:
                     temp_provider = item["provider"]
                 elif item["price"] and temp_provider:
-                    screenshot_name = f"{date}_{temp_provider}_{self.hotel_name}".replace(" ", "_")
+                    screenshot_name = f"{datetime.today().strftime('%d.%m_%H.%M')}_{temp_provider}_{date}_{self.hotel_name}".replace(" ", "_")
                     screenshot_path = take_screenshot(self, screenshot_name)
                     final_result.append((temp_provider, item["price"], screenshot_path))
                     temp_provider = None  # Drop, for next price
@@ -299,7 +277,9 @@ class TestAppium(unittest.TestCase):
             swipe_count += 1
 
         if len(all_providers_prices) == 0:
-            screenshot_name = f"{date}_NO_INFO_{self.hotel_name}".replace(" ", "_")
+            screenshot_name = f"{datetime.today().strftime('%d.%m_%H.%M')}_NO_INFO_{date}_{self.hotel_name}".replace(
+                " ", "_")
+
             screenshot_path = take_screenshot(self, screenshot_name)
             all_providers_prices = {("The dates indicated are already booked", "", screenshot_path)}
 
@@ -309,16 +289,19 @@ class TestAppium(unittest.TestCase):
 
     def test_search_and_collect_data(self):
         # each time.sleep its wait for load
-        self.open_tripadvisor()
-        time.sleep(9)
-        self.close_login_popup()
-        time.sleep(2)
-        self.search_hotel()
-        time.sleep(6)
-        self.tap_view_all_button()
-        time.sleep(5)
+
+        # self.open_tripadvisor()
+        # wait_for_appear(self.driver, 'Search') or wait_for_appear(self.driver, 'Create account')
+        # self.close_login_popup()
+        # wait_for_appear(self.driver, 'Search')
+        # self.search_hotel()
+        # wait_for_appear(self.driver, self.hotel_name)
+        # # time.sleep(6)
+        # if self.tap_view_all_button():
+        #     wait_for_appear(self.driver, 'Deals')
+        # time.sleep(5)
         for date in self.dates:
-            valid_date = self.validate_date(date)
+            valid_date = validate_date(date)
             if valid_date:
                 self.open_calendar()
                 self.select_dates(valid_date)
