@@ -30,17 +30,17 @@ The test follows these steps:
         "15.03": {
             "Booking.com": {
                 "price": "$92",
-                "screenshot": "Bookingcom_15.03_TheGrosvenorHotel.png"
+                "screenshot": "screenshots\\15.03_09.44_Booking.com_26.03_The_Grosvenor_Hotel.png"
             },
             "Agoda.com": {
                 "price": "$94",
-                "screenshot": "Agodacom_15.03_TheGrosvenorHotel.png"
+                "screenshot": "screenshots\\15.03_09.44_Agoda.com_26.03_The_Grosvenor_Hotel.png"
             }
         },
         "17.03": {
             "Vio.com": {
                 "price": "$91",
-                "screenshot": "Viocom_17.03_TheGrosvenorHotel.png"
+                "screenshot": "screenshots\\15.03_09.44_Vio.com_30.03_The_Grosvenor_Hotel.png"
             }
         }
     }
